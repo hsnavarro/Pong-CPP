@@ -1,6 +1,6 @@
 ## TODO
 
-- [ ] Simultaneous user input
+- [x] Simultaneous user input
 - [ ] AI
 - [ ] More realistic collisions (Fix edge cases)
 - [ ] Rectangle collisions with walls
