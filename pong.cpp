@@ -1,49 +1,128 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
-#include <iomanip>
-#include <unistd.h> 
-#include <stdlib.h> 
 
-const int screenWidth = 800;
-const int screenHeight = 400;
-const int rectangleWidth = 0.01 * screenWidth;
-const int rectangleHeight = 0.2 * screenHeight;
-const int ballSize = 5;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 400;
+const int RECTANGLE_WIDTH = 0.01 * SCREEN_WIDTH;
+const int RECTANGLE_HEIGHT = 0.2 * SCREEN_HEIGHT;
+const int BALL_RADIUS = 5;
+const int ANTI_ALIASING_LEVEL = 8;
+const int FRAME_RATE = 100;
+const std::string BEEP_SOUND_FILE = "music/beep-sound-enhanced.wav";
+const std::string WALL_SOUND_FILE = "music/wall-sound.ogg";
+
+enum Direction { UP, DOWN };
+
+const int NUM_PLAYERS = 2;
+const int NUM_DIRECTIONS = 2;
+
+const int MOVE[NUM_PLAYERS][NUM_DIRECTIONS] = {
+  { sf::Keyboard::W, sf::Keyboard::S },
+  { sf::Keyboard::Up, sf::Keyboard::Down }
+};
+
+class Player {
+public:
+  sf::RectangleShape shape;
+  sf::Vector2f velocity = { 0, 300 };
+  bool goingUp = false;
+  bool goingDown = false;
+  bool isAI;
+
+  Player(float positionX = 0, float positionY = 0, bool isAI = false) {
+    shape.setSize({ RECTANGLE_WIDTH, RECTANGLE_HEIGHT });
+    shape.setPosition(positionX, positionY);
+    this->isAI = isAI;
+  }
+
+  void move(float timeElapsed) {
+    if (goingUp) shape.move(-velocity * timeElapsed);
+    if (goingDown) shape.move(velocity * timeElapsed);
+  }
+};
+
+class Ball {
+public:
+  sf::CircleShape shape;
+  sf::Vector2f velocity = { 200, 0 };
+
+  Ball(float positionX = 0, float positionY = 0) {
+    shape.setRadius(BALL_RADIUS);
+    shape.setPosition(positionX, positionY);
+  }
+
+  void move(float timeElapsed) {
+    shape.move(velocity * timeElapsed);
+  }
+};
+
+class GameSound {
+private:
+  sf::SoundBuffer soundBuffer;
+  sf::Sound sound;
+
+public:
+  GameSound(std::string fileName) {
+    if (soundBuffer.loadFromFile(fileName))
+      sound.setBuffer(soundBuffer);
+  }
+
+  void play() {
+    sound.play();
+  }
+};
+
+class GameWindow {
+private:
+  sf::RenderWindow window;
+
+public:
+  GameWindow(float width, float height) {
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = ANTI_ALIASING_LEVEL;
+    window.create(sf::VideoMode(width, height), "Pong Game", sf::Style::Default, settings);
+    window.setFramerateLimit(FRAME_RATE);
+  }
+
+  void clear() {
+    window.clear(sf::Color::Black);
+  }
+
+  void draw(sf::Shape& shape) {
+    window.draw(shape);
+  }
+
+  void display() {
+    window.display();
+  }
+
+  bool pollEvent(sf::Event& event) {
+    return window.pollEvent(event);
+  }
+
+  bool isOpen() {
+    return window.isOpen();
+  }
+
+  void close() {
+    window.close();
+  }
+};
 
 class Game {
 public:
-  sf::RenderWindow window;
-  sf::RectangleShape player1;
-  sf::RectangleShape player2;
-  sf::CircleShape ball;
-  sf::Vector2f ballVelocity;
-  sf::Vector2f playerVelocity;
-  bool player1Up;
-  bool player1Down;
-  bool player2Up;
-  bool player2Down;
+  GameWindow window{ SCREEN_WIDTH, SCREEN_HEIGHT };
+  std::vector<Player>players;
+  Ball ball;
+
+  GameSound beepSound{ BEEP_SOUND_FILE };
+  GameSound wallSound{ WALL_SOUND_FILE };
 
   Game() {
-    sf::ContextSettings settings;
-    settings.antialiasingLevel = 16;
-    window.create(sf::VideoMode(screenWidth, screenHeight), "Pong Game", sf::Style::Default, settings);
-    //window.setFramerateLimit(100);
-
-    player1.setSize({ rectangleWidth, rectangleHeight });
-    player2.setSize({ rectangleWidth, rectangleHeight });
-    ball.setRadius(ballSize);
-
-    ballVelocity = { 200, 0 };
-    playerVelocity = { 0, 300 };
-
-    player1.setPosition(0.1 * screenWidth, 0.5 * screenHeight - 0.5 * rectangleHeight);
-    player2.setPosition(0.9 * screenWidth, 0.5 * screenHeight - 0.5 * rectangleHeight);
-    ball.setPosition(0.5 * screenWidth - ballSize, 0.5 * screenHeight - ballSize);
-
-    player1Up = false;
-    player1Down = false;
-    player2Up = false;
-    player2Down = false;
+    players.push_back({ 0.1 * SCREEN_WIDTH, 0.5 * SCREEN_HEIGHT - 0.5 * RECTANGLE_HEIGHT });
+    players.push_back({ 0.9 * SCREEN_WIDTH, 0.5 * SCREEN_HEIGHT - 0.5 * RECTANGLE_HEIGHT });
+    ball = { 0.5 * SCREEN_WIDTH - BALL_RADIUS, 0.5 * SCREEN_HEIGHT - BALL_RADIUS };
   }
 
   bool rectangleIntersection(sf::RectangleShape& rectangleA, sf::RectangleShape& rectangleB) {
@@ -65,28 +144,35 @@ public:
     return firstCondition and secondCondition;
   }
 
-  bool DetectRectangleCollisionBall(sf::Vector2f& previousBallPosition, sf::CircleShape& ball, sf::Vector2f& previousRectanglePosition, sf::RectangleShape& rectangle, float timeElapsed) {
+  bool DetectRectangleCollisionBall(
+    sf::Vector2f& previousBallPosition,
+    Ball& ball,
+    sf::Vector2f& previousRectanglePosition,
+    Player& player,
+    float timeElapsed) {
 
-    sf::Vector2f rectanglePosition = rectangle.getPosition();
+    sf::Vector2f rectanglePosition = player.shape.getPosition();
 
     float xLeft = rectanglePosition.x;
-    float xRight = rectanglePosition.x + rectangleWidth;
+    float xRight = rectanglePosition.x + RECTANGLE_WIDTH;
 
     float yTop = rectanglePosition.y;
-    float yBottom = rectanglePosition.y + rectangleHeight;
+    float yBottom = rectanglePosition.y + RECTANGLE_HEIGHT;
 
-    sf::RectangleShape ballCollisionBox({ 2 * ball.getRadius(), 2 * ball.getRadius() });
-    ballCollisionBox.setPosition(ball.getPosition());
+    float ballRadius = ball.shape.getRadius();
+    sf::RectangleShape ballCollisionBox({ 2 * ballRadius, 2 * ballRadius });
+    ballCollisionBox.setPosition(ball.shape.getPosition());
 
     float rectangleAceleration = (rectanglePosition.y - previousRectanglePosition.y) / timeElapsed;
 
-    if (rectangleIntersection(rectangle, ballCollisionBox)) {
-      bool horizontalApproach = previousBallPosition.x < xLeft or previousBallPosition.x > xRight;
-      bool verticalApproach = previousBallPosition.y < yTop or previousBallPosition.y > yBottom;
+    if (rectangleIntersection(player.shape, ballCollisionBox)) {
+      beepSound.play();
+      bool horizontalApproach = previousBallPosition.x <= xLeft or previousBallPosition.x >= xRight;
+      bool verticalApproach = previousBallPosition.y <= yTop or previousBallPosition.y >= yBottom;
 
-      if (horizontalApproach) ballVelocity.x *= -1;
-      if (verticalApproach) ballVelocity.y *= -1;
-      if (horizontalApproach and !verticalApproach) ballVelocity.y += 0.3 * rectangleAceleration;
+      if (horizontalApproach) ball.velocity.x *= -1;
+      if (verticalApproach) ball.velocity.y *= -1;
+      if (horizontalApproach and !verticalApproach) ball.velocity.y += 0.3 * rectangleAceleration;
 
       return true;
     }
@@ -94,110 +180,128 @@ public:
     return false;
   }
 
-  void DetectWallCollisionPlayer(sf::RectangleShape& player) {
+  void DetectWallCollisionPlayer(Player& player) {
 
-    float xLeft = player.getPosition().x;
-    float yTop = player.getPosition().y;
+    float xLeft = player.shape.getPosition().x;
+    float yTop = player.shape.getPosition().y;
 
     if (yTop <= 0) yTop = 0;
 
-    if (yTop + rectangleHeight >= screenHeight)
-      yTop = screenHeight - rectangleHeight;
+    if (yTop + RECTANGLE_HEIGHT >= SCREEN_HEIGHT)
+      yTop = SCREEN_HEIGHT - RECTANGLE_HEIGHT;
 
-    player.setPosition({ xLeft,  yTop });
+    player.shape.setPosition({ xLeft,  yTop });
   }
 
-  bool DetectWallCollisionBall(sf::CircleShape& ball) {
-    // wall collision
+  bool DetectWallCollisionBall(Ball& ball) {
 
-    sf::Vector2f ballPosition = ball.getPosition();
-    float ballRadius = ball.getRadius();
+    sf::Vector2f ballPosition = ball.shape.getPosition();
+    float ballRadius = ball.shape.getRadius();
 
-    if (ballPosition.y + 2 * ballRadius >= screenHeight or
+    if (ballPosition.y + 2 * ballRadius >= SCREEN_HEIGHT or
       ballPosition.y <= 0) {
 
-      ballVelocity.y *= -1;
+      wallSound.play();
+      ball.velocity.y *= -1;
       return true;
     }
 
-    if (ballPosition.x + 2 * ballRadius >= screenWidth or
+    if (ballPosition.x + 2 * ballRadius >= SCREEN_WIDTH or
       ballPosition.x <= 0) {
 
-      ballVelocity.x *= -1;
+      wallSound.play();
+      ball.velocity.x *= -1;
       return true;
     }
     return false;
   }
 
   void Update(float timeElapsed) {
-    sf::Vector2f previousBallPosition = ball.getPosition();
-    ball.move(ballVelocity * timeElapsed);
+    sf::Vector2f previousBallPosition = ball.shape.getPosition();
+    ball.move(timeElapsed);
 
-    sf::Vector2f previousPlayer1Position = player1.getPosition();
-    sf::Vector2f previousPlayer2Position = player2.getPosition();
+    std::vector<sf::Vector2f> previousPlayerPosition;
 
-    if (player1Up) player1.move(-playerVelocity * timeElapsed);
-    if (player1Down) player1.move(playerVelocity * timeElapsed);
-    if (player2Up) player2.move(-playerVelocity * timeElapsed);
-    if (player2Down) player2.move(playerVelocity * timeElapsed);
+    for (auto& player : players) {
+      previousPlayerPosition.push_back(player.shape.getPosition());
+      player.move(timeElapsed);
+    }
 
     bool checkBallCollision = false;
+
     checkBallCollision |= DetectWallCollisionBall(ball);
-    checkBallCollision |= DetectRectangleCollisionBall(previousBallPosition, ball, previousPlayer1Position, player1, timeElapsed);
-    checkBallCollision |= DetectRectangleCollisionBall(previousBallPosition, ball, previousPlayer2Position, player2, timeElapsed);
+    for (int i = 0; i < NUM_PLAYERS; i++) {
+      checkBallCollision |= DetectRectangleCollisionBall(
+        previousBallPosition,
+        ball,
+        previousPlayerPosition[i],
+        players[i],
+        timeElapsed
+      );
+    }
 
-    if (checkBallCollision) ball.move(ballVelocity * timeElapsed);
+    if (checkBallCollision) ball.move(timeElapsed);
 
-    DetectWallCollisionPlayer(player1);
-    DetectWallCollisionPlayer(player2);
+    for (auto& player : players)
+      DetectWallCollisionPlayer(player);
+
+    for (int i = 0; i < NUM_PLAYERS; i++) 
+      if(players[i].isAI)AIMove(i);
   }
 
   void Render() {
-    window.clear(sf::Color::Black);
-    window.draw(player1);
-    window.draw(player2);
-    window.draw(ball);
+    window.clear();
+    for (auto& player : players) window.draw(player.shape);
+    window.draw(ball.shape);
     window.display();
   }
 
-  void handleEvent(sf::Event event) {
-    if (event.type == sf::Event::Closed) {
-      window.close();
+  void AIMove(int playerID) {
+    /*
+    float yHitPosition;
+    sf::Vector2f ballPosition = ball.shape.getPosition();
+
+        if(ballVelocity.x > 0) {
+          float timeToHit = (player.getPosition().x - ballPosition.x) / ballVelocity.x
+
+          float yHitPosition = ballPosition.y + ballVelocity.y * timeToHit;
+
+
+        }
+    */
+    Player& player = players[playerID];
+    if(!player.isAI) return;
+
+    float yBall = ball.shape.getPosition().y;
+
+    float yPlayerTop = player.shape.getPosition().y;
+    float yPlayerBottom = yPlayerTop + player.shape.getSize().y;
+
+    if (yBall < yPlayerTop) {
+      player.goingUp = true;
+      player.goingDown = false;
+    } else if (yBall > yPlayerBottom) {
+      player.goingUp = false;
+      player.goingDown = true;
+    } else {
+      player.goingUp = false;
+      player.goingDown = false;
     }
+  }
 
-    if (event.type == sf::Event::KeyPressed) {
-      if (event.key.code == sf::Keyboard::W) {
-        player1Up = true;
-      }
+  void handleEvent(sf::Event& event) {
+    if (event.type == sf::Event::Closed) window.close();
 
-      if (event.key.code == sf::Keyboard::S) {
-        player1Down = true;
-      }
+    if (event.type == sf::Event::KeyPressed or event.type == sf::Event::KeyReleased) {
 
-      if (event.key.code == sf::Keyboard::Up) {
-        player2Up = true;
-      }
+       bool updateMovement = (event.type == sf::Event::KeyPressed);
 
-      if (event.key.code == sf::Keyboard::Down) {
-        player2Down = true;
-      }
-    }
-
-    if (event.type == sf::Event::KeyReleased) {
-      if (event.key.code == sf::Keyboard::W) {
-        player1Up = false;
-      }
-
-      if (event.key.code == sf::Keyboard::S) {
-        player1Down = false;
-      }
-
-      if (event.key.code == sf::Keyboard::Up) {
-        player2Up = false;
-      }
-
-      if (event.key.code == sf::Keyboard::Down) {
-        player2Down = false;
+      for(int i = 0; i < NUM_PLAYERS; i++) {
+        Player& player = players[i];
+        if(!player.isAI) {
+          if(event.key.code == MOVE[i][UP]) player.goingUp = updateMovement;
+          if(event.key.code == MOVE[i][DOWN]) player.goingDown = updateMovement;
+        }
       }
     }
   }
@@ -211,7 +315,7 @@ int main() {
 
   while (game.window.isOpen()) {
     float elapsed = clock.restart().asSeconds();
-    std::cerr << 1 / elapsed << std::endl;
+    //std::cerr << 1 / elapsed << std::endl;
 
     game.Update(elapsed);
     game.Render();
