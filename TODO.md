@@ -1,11 +1,30 @@
 ## TODO
 
+### Overall Quality
+
 - [x] Simultaneous user input
-- [ ] AI
+- [x] Add anti-aliasing
+
+### AI
+
+- [x] Basic AI
+- [ ] Add impact point prediction
+
+### Physics
+
 - [ ] More realistic collisions (Fix edge cases)
 - [x] Rectangle collisions with walls
-- [x] Add anti-aliasing
 - [x] Add simple rotation to ball
+
+### Network
+
 - [ ] Add network features
-- [ ] Add sound
+
+### Sound
+
+- [x] Add basic sound
+- [ ] Add winning and point sound
+
+### Gameplay
+
 - [ ] Score system
