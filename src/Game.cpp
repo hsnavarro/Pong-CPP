@@ -6,8 +6,8 @@
 #include "GameWindow.hpp"
 #include <iostream>
 
-const std::string BEEP_SOUND_FILE = "../music/beep-sound-enhanced.wav";
-const std::string WALL_SOUND_FILE = "../music/wall-sound.ogg";
+const std::string BEEP_SOUND_FILE = "./music/beep-sound-enhanced.wav";
+const std::string WALL_SOUND_FILE = "./music/wall-sound.ogg";
 
 enum Direction { UP, DOWN };
 
