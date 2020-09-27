@@ -15,7 +15,7 @@ CPP_FILES = $(wildcard ./src/*.cpp)
 
 BUILD_EXISTS = $(wildcard ./${OUT_DIR})
 
-all: create_dir compile
+build: create_dir compile
 
 compile:
 	@${CXX} ${CXXFLAGS} ${CPP_FILES} -o ${OUT_DIR}/${OUT_EXE}
@@ -27,12 +27,14 @@ execute:
 	@./${OUT_DIR}/${OUT_EXE}
 
 ifeq (${BUILD_EXISTS}, ) 
-run_dependencies: all execute
+run_dependencies: build execute
 else 
 run_dependencies: execute
 endif
 
 run: run_dependencies
+
+build-and-run: build execute
 
 clean:
 	@rm -rf ${OUT_DIR}
