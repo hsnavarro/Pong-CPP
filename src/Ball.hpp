@@ -5,7 +5,7 @@
 class Ball {
 public:
     sf::CircleShape shape;
-    sf::Vector2f velocity = { 200, 0 };
+    sf::Vector2f velocity = { 250, 0 };
 
     Ball(float = 0, float = 0);
     void move(float);

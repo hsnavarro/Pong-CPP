@@ -5,7 +5,7 @@
 class Player {
 public:
     sf::RectangleShape shape;
-    sf::Vector2f velocity = { 0, 300 };
+    sf::Vector2f velocity = { 0, 400 };
     bool goingUp = false;
     bool goingDown = false;
     bool isAI;
