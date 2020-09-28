@@ -35,7 +35,8 @@ public:
     });
     players.push_back({ 
       0.9 * setupInfo::SCREEN_WIDTH, 
-      0.5 * setupInfo::SCREEN_HEIGHT - 0.5 * setupInfo::RECTANGLE_HEIGHT 
+      0.5 * setupInfo::SCREEN_HEIGHT - 0.5 * setupInfo::RECTANGLE_HEIGHT,
+      true
     });
     ball = { 
       0.5 * setupInfo::SCREEN_WIDTH - setupInfo::BALL_RADIUS, 
@@ -242,11 +243,18 @@ int main() {
   sf::Clock clock;
   sf::Event event;
 
+  float dt = 1 / 2000.0;
+
   while (game.window.isOpen()) {
     float elapsed = clock.restart().asSeconds();
     //std::cerr << 1 / elapsed << std::endl;
 
-    game.Update(elapsed);
+    while(elapsed > 0.0) {
+      float deltaTime = std::min(elapsed, dt);
+      game.Update(deltaTime);
+      elapsed -= deltaTime;
+    }
+
     game.Render();
 
     while (game.window.pollEvent(event)) {
