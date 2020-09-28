@@ -1,7 +1,7 @@
 #include "GameWindow.hpp"
 
 const int ANTI_ALIASING_LEVEL = 8;
-const int FRAME_RATE = 100;
+const int FRAME_RATE = 300;
 
 GameWindow::GameWindow(float width, float height) {
   sf::ContextSettings settings;
