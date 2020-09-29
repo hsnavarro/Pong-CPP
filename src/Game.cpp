@@ -1,6 +1,7 @@
 #include "sfml.hpp"
 #include "setupInfo.hpp"
 #include "physics.hpp"
+#include "ai.hpp"
 #include "Player.hpp"
 #include "Ball.hpp"
 #include "GameSound.hpp"
@@ -58,9 +59,6 @@ public:
       player.move(timeElapsed);
     }
 
-    for (int i = 0; i < NUM_PLAYERS; i++)
-      if (players[i].isAI) AIMove(i);
-
     bool checkBallCollision = false;
 
     if (physics::DetectAndFixWallCollisionBall(ball, window)) {
@@ -86,6 +84,10 @@ public:
         beepSound.play();
       }
     }
+
+    if (checkBallCollision) ball.move(timeElapsed);
+
+    for(auto& player : players) ai::AIPlay(player, ball);
   }
 
   void Render() {
@@ -93,27 +95,6 @@ public:
     for (auto& player : players) window.draw(player.shape);
     window.draw(ball.shape);
     window.display();
-  }
-
-  void AIMove(int playerID) {
-    Player& player = players[playerID];
-    if (!player.isAI) return;
-
-    float yBall = ball.shape.getPosition().y;
-
-    float yPlayerTop = player.shape.getPosition().y;
-    float yPlayerBottom = yPlayerTop + player.shape.getSize().y;
-
-    if (yBall < yPlayerTop) {
-      player.goingUp = true;
-      player.goingDown = false;
-    } else if (yBall > yPlayerBottom) {
-      player.goingUp = false;
-      player.goingDown = true;
-    } else {
-      player.goingUp = false;
-      player.goingDown = false;
-    }
   }
 
   void handleEvent(sf::Event& event) {
