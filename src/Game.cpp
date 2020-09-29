@@ -1,5 +1,6 @@
 #include "sfml.hpp"
 #include "setupInfo.hpp"
+#include "physics.hpp"
 #include "Player.hpp"
 #include "Ball.hpp"
 #include "GameSound.hpp"
@@ -29,121 +30,21 @@ public:
   GameSound wallSound{ WALL_SOUND_FILE };
 
   Game() {
-    players.push_back({ 
-      0.1 * setupInfo::SCREEN_WIDTH, 
-      0.5 * setupInfo::SCREEN_HEIGHT - 0.5 * setupInfo::RECTANGLE_HEIGHT 
+    players.push_back({
+     setupInfo::player1InitialPosition.x,
+     setupInfo::player1InitialPosition.y
     });
-    players.push_back({ 
-      0.9 * setupInfo::SCREEN_WIDTH, 
-      0.5 * setupInfo::SCREEN_HEIGHT - 0.5 * setupInfo::RECTANGLE_HEIGHT,
+
+    players.push_back({
+      setupInfo::player2InitialPosition.x,
+      setupInfo::player2InitialPosition.y,
       true
     });
-    ball = { 
-      0.5 * setupInfo::SCREEN_WIDTH - setupInfo::BALL_RADIUS, 
-      0.5 * setupInfo::SCREEN_HEIGHT - setupInfo::BALL_RADIUS 
+
+    ball = {
+      setupInfo::ballInitialPosition.x,
+      setupInfo::ballInitialPosition.y
     };
-  }
-
-  bool rectangleIntersection(sf::RectangleShape& rectangleA, sf::RectangleShape& rectangleB) {
-    float xLeftA = rectangleA.getPosition().x;
-    float xRightA = xLeftA + rectangleA.getSize().x;
-
-    float yTopA = rectangleA.getPosition().y;
-    float yBottomA = yTopA + rectangleA.getSize().y;
-
-    float xLeftB = rectangleB.getPosition().x;
-    float xRightB = xLeftB + rectangleB.getSize().x;
-
-    float yTopB = rectangleB.getPosition().y;
-    float yBottomB = yTopB + rectangleB.getSize().y;
-
-    bool firstCondition = !(xRightA < xLeftB or xRightB < xLeftA);
-    bool secondCondition = !(yBottomB < yTopA or yBottomA < yTopB);
-
-    return firstCondition and secondCondition;
-  }
-
-  bool DetectRectangleCollisionBall(
-    sf::Vector2f& previousBallPosition,
-    Ball& ball,
-    sf::Vector2f& previousRectanglePosition,
-    Player& player,
-    float timeElapsed) {
-
-    sf::Vector2f rectanglePosition = player.shape.getPosition();
-
-    sf::Vector2f rectangleSize = player.shape.getSize();
-    float rectangleWidth = rectangleSize.x;
-    float rectangleHeight = rectangleSize.y;
-
-    float xLeft = rectanglePosition.x;
-    float xRight = rectanglePosition.x + rectangleWidth;
-
-    float yTop = rectanglePosition.y;
-    float yBottom = rectanglePosition.y + rectangleHeight;
-
-    float ballRadius = ball.shape.getRadius();
-    sf::RectangleShape ballCollisionBox({ 2 * ballRadius, 2 * ballRadius });
-    ballCollisionBox.setPosition(ball.shape.getPosition());
-
-    float rectangleAceleration = (rectanglePosition.y - previousRectanglePosition.y) / timeElapsed;
-
-    if (rectangleIntersection(player.shape, ballCollisionBox)) {
-      beepSound.play();
-      bool horizontalApproach = previousBallPosition.x <= xLeft or previousBallPosition.x >= xRight;
-      bool verticalApproach = previousBallPosition.y <= yTop or previousBallPosition.y >= yBottom;
-
-      if (horizontalApproach) ball.velocity.x *= -1;
-      if (verticalApproach) ball.velocity.y *= -1;
-      if (horizontalApproach and !verticalApproach) ball.velocity.y += 0.3 * rectangleAceleration;
-
-      return true;
-    }
-
-    return false;
-  }
-
-  void DetectWallCollisionPlayer(Player& player) {
-
-    float xLeft = player.shape.getPosition().x;
-    float yTop = player.shape.getPosition().y;
-    float rectangleHeight = player.shape.getSize().y;
-
-    float screenHeight = window.getSize().y;
-
-    if (yTop <= 0) yTop = 0;
-
-    if (yTop + rectangleHeight >= screenHeight)
-      yTop = screenHeight - rectangleHeight;
-
-    player.shape.setPosition({ xLeft,  yTop });
-  }
-
-  bool DetectWallCollisionBall(Ball& ball) {
-
-    sf::Vector2f ballPosition = ball.shape.getPosition();
-    float ballRadius = ball.shape.getRadius();
-
-    sf::Vector2u screenSize = window.getSize();
-    float screenHeight = screenSize.y;
-    float screenWidth = screenSize.x;
-
-    if (ballPosition.y + 2 * ballRadius >= screenHeight or
-      ballPosition.y <= 0) {
-
-      wallSound.play();
-      ball.velocity.y *= -1;
-      return true;
-    }
-
-    if (ballPosition.x + 2 * ballRadius >= screenWidth or
-      ballPosition.x <= 0) {
-
-      wallSound.play();
-      ball.velocity.x *= -1;
-      return true;
-    }
-    return false;
   }
 
   void Update(float timeElapsed) {
@@ -157,26 +58,34 @@ public:
       player.move(timeElapsed);
     }
 
+    for (int i = 0; i < NUM_PLAYERS; i++)
+      if (players[i].isAI) AIMove(i);
+
     bool checkBallCollision = false;
 
-    checkBallCollision |= DetectWallCollisionBall(ball);
+    if (physics::DetectAndFixWallCollisionBall(ball, window)) {
+      wallSound.play();
+      checkBallCollision = true;
+    }
+
+    for (auto& player : players) {
+      if(physics::DetectAndFixWallCollisionPlayer(player, window))
+        checkBallCollision = true;
+    }
+
     for (int i = 0; i < NUM_PLAYERS; i++) {
-      checkBallCollision |= DetectRectangleCollisionBall(
+      if (physics::DetectAndFixPlayerCollisionBall(
         previousBallPosition,
         ball,
         previousPlayerPosition[i],
         players[i],
         timeElapsed
-      );
+      )) {
+
+        checkBallCollision = true;
+        beepSound.play();
+      }
     }
-
-    if (checkBallCollision) ball.move(timeElapsed);
-
-    for (auto& player : players)
-      DetectWallCollisionPlayer(player);
-
-    for (int i = 0; i < NUM_PLAYERS; i++)
-      if (players[i].isAI)AIMove(i);
   }
 
   void Render() {
@@ -187,18 +96,6 @@ public:
   }
 
   void AIMove(int playerID) {
-    /*
-    float yHitPosition;
-    sf::Vector2f ballPosition = ball.shape.getPosition();
-
-        if(ballVelocity.x > 0) {
-          float timeToHit = (player.getPosition().x - ballPosition.x) / ballVelocity.x
-
-          float yHitPosition = ballPosition.y + ballVelocity.y * timeToHit;
-
-
-        }
-    */
     Player& player = players[playerID];
     if (!player.isAI) return;
 
@@ -243,13 +140,13 @@ int main() {
   sf::Clock clock;
   sf::Event event;
 
-  float dt = 1 / 2000.0;
+  float dt = (1 / 4000.0);
 
   while (game.window.isOpen()) {
     float elapsed = clock.restart().asSeconds();
     //std::cerr << 1 / elapsed << std::endl;
 
-    while(elapsed > 0.0) {
+    while (elapsed > 0.0) {
       float deltaTime = std::min(elapsed, dt);
       game.Update(deltaTime);
       elapsed -= deltaTime;
