@@ -14,7 +14,7 @@ sf::Vector2u GameWindow::getSize() { return window.getSize(); }
 
 void GameWindow::clear() { window.clear(sf::Color::Black); };
 
-void GameWindow::draw(sf::Shape& shape) { window.draw(shape); };
+void GameWindow::draw(sf::Drawable& drawable) { window.draw(drawable); };
 
 void GameWindow::display() { window.display(); }
 

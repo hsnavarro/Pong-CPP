@@ -12,7 +12,7 @@ public:
   sf::Vector2u getSize();
   
   void clear();
-  void draw(sf::Shape&);
+  void draw(sf::Drawable&);
   void display();
   void close();
   bool isOpen();

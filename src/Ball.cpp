@@ -1,11 +1,16 @@
 #include "Ball.hpp"
-#include "setupInfo.hpp"
 
-Ball::Ball(float positionX, float positionY) {
+Ball::Ball(sf::Vector2f initialPosition) {
+  this->initialPosition = initialPosition;
   shape.setRadius(setupInfo::BALL_RADIUS);
-  shape.setPosition(positionX, positionY);
+  shape.setPosition(initialPosition);
 }
 
 void Ball::move(float timeElapsed) {
   shape.move(velocity * timeElapsed);
+}
+
+void Ball::resetPosition() {
+  shape.setPosition(initialPosition);
+  velocity = setupInfo::ballInitialVelocity;
 }

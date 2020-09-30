@@ -6,10 +6,12 @@
 #include "Ball.hpp"
 #include "GameSound.hpp"
 #include "GameWindow.hpp"
+#include "GameText.hpp"
 #include <iostream>
 
-const std::string BEEP_SOUND_FILE = "./music/beep-sound-enhanced.wav";
-const std::string WALL_SOUND_FILE = "./music/wall-sound.ogg";
+const std::string BEEP_SOUND_FILE = "./audio/beep-sound-enhanced.wav";
+const std::string WALL_SOUND_FILE = "./audio/wall-sound.ogg";
+const std::string FONT_FILE = "./fonts/main-font.ttf";
 
 enum Direction { UP, DOWN };
 
@@ -23,32 +25,75 @@ const int MOVE[NUM_PLAYERS][NUM_DIRECTIONS] = {
 
 class Game {
 public:
-  GameWindow window{ setupInfo::SCREEN_WIDTH, setupInfo::SCREEN_HEIGHT };
   std::vector<Player>players;
   Ball ball;
+  bool isMatchEnd = false;
+
+  GameWindow window{ setupInfo::SCREEN_WIDTH, setupInfo::SCREEN_HEIGHT };
 
   GameSound beepSound{ BEEP_SOUND_FILE };
   GameSound wallSound{ WALL_SOUND_FILE };
 
+  GameText scoreText{ FONT_FILE };
+  GameText winText{ FONT_FILE };
+
   Game() {
-    players.push_back({
-     setupInfo::player1InitialPosition.x,
-     setupInfo::player1InitialPosition.y
-    });
-
-    players.push_back({
-      setupInfo::player2InitialPosition.x,
-      setupInfo::player2InitialPosition.y,
-      true
-    });
-
-    ball = {
-      setupInfo::ballInitialPosition.x,
-      setupInfo::ballInitialPosition.y
-    };
+    scoreText.setString(scoreText.stringifyScore(0, 0));
+    players.push_back({ setupInfo::player1InitialPosition });
+    players.push_back({ setupInfo::player2InitialPosition, true });
   }
 
-  void Update(float timeElapsed) {
+  void resetPosition() {
+    ball.resetPosition();
+    for (auto& player : players) player.resetPosition();
+  }
+
+  void updateScoreBoard() {
+    scoreText.setString(scoreText.stringifyScore(players[0].points, players[1].points));
+  }
+
+  void checkMatchEnd() {
+    for (int i = 0; i < NUM_PLAYERS; i++) {
+      if(players[i].points == setupInfo::MAX_PTS) {
+        
+        winText.setString("Player " + std::to_string(i + 1) + " wins!");
+        winText.text.setPosition(winText.text.getPosition().x, 0.5 * setupInfo::SCREEN_HEIGHT);
+        
+        ball.shape.setFillColor(sf::Color::Black);
+        isMatchEnd = true;
+
+        return;
+      } 
+    }
+  }
+
+  void processPoint() {
+    updateScoreBoard();
+    resetPosition();
+    checkMatchEnd();
+  }
+
+  void detectAndHandlePoint() {
+    sf::Vector2f ballPosition = ball.shape.getPosition();
+    float ballRadius = ball.shape.getRadius();
+
+    sf::Vector2u screenSize = window.getSize();
+    float screenWidth = screenSize.x;
+
+    if (ballPosition.x + 2 * ballRadius >= screenWidth) {
+      players[0].points++;
+      processPoint();
+    }
+
+    if (ballPosition.x <= 0) {
+      players[1].points++;
+      processPoint();
+    }
+  }
+
+  void update(float timeElapsed) {
+    if(isMatchEnd) return;
+
     sf::Vector2f previousBallPosition = ball.shape.getPosition();
     ball.move(timeElapsed);
 
@@ -61,18 +106,16 @@ public:
 
     bool checkBallCollision = false;
 
-    if (physics::DetectAndFixWallCollisionBall(ball, window)) {
+    if (physics::detectAndFixWallCollisionBall(ball, window)) {
       wallSound.play();
       checkBallCollision = true;
     }
 
-    for (auto& player : players) {
-      if(physics::DetectAndFixWallCollisionPlayer(player, window))
-        checkBallCollision = true;
-    }
+    for (auto& player : players)
+      physics::detectAndFixWallCollisionPlayer(player, window);
 
     for (int i = 0; i < NUM_PLAYERS; i++) {
-      if (physics::DetectAndFixPlayerCollisionBall(
+      if (physics::detectAndFixPlayerCollisionBall(
         previousBallPosition,
         ball,
         previousPlayerPosition[i],
@@ -87,13 +130,20 @@ public:
 
     if (checkBallCollision) ball.move(timeElapsed);
 
-    for(auto& player : players) ai::AIPlay(player, ball);
+    for (auto& player : players) ai::AIPlay(player, ball);
+
+    detectAndHandlePoint();
   }
 
-  void Render() {
+  void render() {
     window.clear();
     for (auto& player : players) window.draw(player.shape);
     window.draw(ball.shape);
+
+    window.draw(scoreText.text);
+
+    if(isMatchEnd) window.draw(winText.text);
+
     window.display();
   }
 
@@ -129,11 +179,11 @@ int main() {
 
     while (elapsed > 0.0) {
       float deltaTime = std::min(elapsed, dt);
-      game.Update(deltaTime);
+      game.update(deltaTime);
       elapsed -= deltaTime;
     }
 
-    game.Render();
+    game.render();
 
     while (game.window.pollEvent(event)) {
       game.handleEvent(event);

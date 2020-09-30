@@ -7,7 +7,9 @@ class Ball {
 public:
     sf::CircleShape shape;
     sf::Vector2f velocity = setupInfo::ballInitialVelocity;
+    sf::Vector2f initialPosition;
 
-    Ball(float = 0, float = 0);
+    Ball(sf::Vector2f = setupInfo::ballInitialPosition);
     void move(float);
+    void resetPosition();
 };

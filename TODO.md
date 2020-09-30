@@ -27,4 +27,4 @@
 
 ### Gameplay
 
-- [ ] Score system
+- [x] Score system
