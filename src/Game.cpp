@@ -11,6 +11,8 @@
 
 const std::string BEEP_SOUND_FILE = "./audio/beep-sound-enhanced.wav";
 const std::string WALL_SOUND_FILE = "./audio/wall-sound.ogg";
+const std::string POINT_SOUND_FILE = "./audio/point-sound.wav";
+const std::string WIN_SOUND_FILE = "./audio/win-sound.wav";
 const std::string FONT_FILE = "./fonts/main-font.ttf";
 
 enum Direction { UP, DOWN };
@@ -33,6 +35,8 @@ public:
 
   GameSound beepSound{ BEEP_SOUND_FILE };
   GameSound wallSound{ WALL_SOUND_FILE };
+  GameSound pointSound{ POINT_SOUND_FILE };
+  GameSound winSound{ WIN_SOUND_FILE };
 
   GameText scoreText{ FONT_FILE };
   GameText winText{ FONT_FILE };
@@ -62,12 +66,14 @@ public:
         ball.shape.setFillColor(sf::Color::Black);
         isMatchEnd = true;
 
+        winSound.play();
         return;
       } 
     }
   }
 
   void processPoint() {
+    pointSound.play();
     updateScoreBoard();
     resetPosition();
     checkMatchEnd();

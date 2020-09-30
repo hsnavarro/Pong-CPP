@@ -23,7 +23,7 @@
 ### Sound
 
 - [x] Add basic sound
-- [ ] Add winning and point sound
+- [x] Add winning and point sound
 
 ### Gameplay
 
