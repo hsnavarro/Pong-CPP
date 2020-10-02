@@ -8,7 +8,7 @@
 ### AI
 
 - [x] Basic AI
-- [ ] Add impact point prediction
+- [x] Add impact point prediction
 
 ### Physics
 

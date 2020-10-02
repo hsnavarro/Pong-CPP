@@ -2,6 +2,8 @@
 
 #include "sfml.hpp"
 
+enum Difficulty { EASY, MEDIUM, HARD };
+
 namespace setupInfo {
   const int BALL_RADIUS = 5;
   const int SCREEN_WIDTH = 800;
@@ -14,5 +16,6 @@ namespace setupInfo {
   const sf::Vector2f player2InitialPosition = { 0.9 * SCREEN_WIDTH, 0.5 * SCREEN_HEIGHT - 0.5 * RECTANGLE_HEIGHT,};
   const sf::Vector2f ballInitialVelocity = { 300, 0 };
   const sf::Vector2f playerInitialVelocity = { 0, 400 };
-  const int MAX_PTS = 10;
+  const int MAX_PTS = 5;
+  const int AI_DIFFICULTY = HARD;
 }
