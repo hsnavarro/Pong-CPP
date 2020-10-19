@@ -1,7 +1,10 @@
-#include "sfml.hpp"
+#pragma once
+
 #include "setupInfo.hpp"
-#include "Player.hpp"
+#include "sfml.hpp"
+
 #include "Ball.hpp"
+#include "Player.hpp"
 
 namespace ai {
   void AIPlay(Player&, Ball&, int = setupInfo::AI_DIFFICULTY);

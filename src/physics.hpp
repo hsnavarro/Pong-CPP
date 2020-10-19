@@ -1,13 +1,13 @@
 #pragma once
 
 #include "sfml.hpp"
+
 #include "Ball.hpp"
-#include "Player.hpp"
 #include "GameWindow.hpp"
+#include "Player.hpp"
 
 namespace physics {
-  bool detectRectangleIntersection(sf::RectangleShape&, sf::RectangleShape&);
-  bool detectAndFixPlayerCollisionBall(sf::Vector2f&, Ball&, sf::Vector2f&, Player&, float);
-  bool detectAndFixWallCollisionPlayer(Player&, GameWindow&);
-  bool detectAndFixWallCollisionBall(Ball&, GameWindow&);
+  bool ballToPlayerCollision(Ball&, Player&);
+  bool playerToWallCollision(Player&, GameWindow&);
+  bool ballToWallCollision(Ball&, GameWindow&);
 }

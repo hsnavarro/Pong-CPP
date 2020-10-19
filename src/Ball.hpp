@@ -1,7 +1,7 @@
 #pragma once
 
-#include "sfml.hpp"
 #include "setupInfo.hpp"
+#include "sfml.hpp"
 
 class Ball {
 public:

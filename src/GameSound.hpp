@@ -9,5 +9,5 @@ private:
 
 public:
   GameSound(std::string);
-  void play();
+  void play(const double);
 };

@@ -11,8 +11,8 @@ Player::Player(sf::Vector2f initialPosition, bool isAI) {
   }
 
 void Player::move(float timeElapsed) {
-    if (goingUp) shape.move(-velocity * timeElapsed);
-    if (goingDown) shape.move(velocity * timeElapsed);
+  if (goingUp) shape.move(-movementVelocity * timeElapsed);
+  if (goingDown) shape.move(movementVelocity * timeElapsed);
 }
 
 void Player::resetPosition() {

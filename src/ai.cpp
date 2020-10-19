@@ -1,5 +1,6 @@
-#include "ai.hpp"
 #include <cmath>
+
+#include "ai.hpp"
 
 void ai::followCoordinate(Player& player, Ball& ball, float y) {
   float yPlayerTop = player.shape.getPosition().y;

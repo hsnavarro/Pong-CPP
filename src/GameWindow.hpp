@@ -4,7 +4,7 @@
 
 class GameWindow {
 private:
-  sf::RenderWindow window;
+  sf::RenderWindow window; 
 
 public:
   GameWindow(float, float);
@@ -12,7 +12,7 @@ public:
   sf::Vector2u getSize();
   
   void clear();
-  void draw(sf::Drawable&);
+  void draw(const sf::Drawable&);
   void display();
   void close();
   bool isOpen();
