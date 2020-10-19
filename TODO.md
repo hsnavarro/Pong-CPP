@@ -12,7 +12,7 @@
 
 ### Physics
 
-- [ ] More realistic collisions (Fix edge cases)
+- [x] More realistic collisions (Fix edge cases)
 - [x] Rectangle collisions with walls
 - [x] Add simple rotation to ball
 
@@ -28,3 +28,7 @@
 ### Gameplay
 
 - [x] Score system
+
+### Menu
+
+- [ ] Add options menu
